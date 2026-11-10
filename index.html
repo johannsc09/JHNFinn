@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JHNFinn — Controle Financeiro</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="fullscreen-mode">
+  <div class="browser-window" id="browserWindow">
+    <!-- Main App Grid -->
+    <div class="app-layout">
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <div>
+          <div class="brand-header" onclick="window.app.setTab('visao-geral')">
+            <div class="couple-avatars" id="brandAvatars">
+              <span class="avatar-circle blue">J</span>
+            </div>
+            <div class="brand-text">
+              <h1 id="brandTitle">JHNFinn</h1>
+              <p id="brandSubtitle">Finanças pessoais</p>
+            </div>
+          </div>
+
+          <!-- Mode Switcher: Individual (1 Perfil separado) vs Casal -->
+          <div class="mode-switcher-box" title="Alterne entre seu controle individual separado e o controle do casal">
+            <button class="mode-btn active" id="modeBtnSolo" onclick="window.app.setMode('solo')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Individual</span>
+            </button>
+            <button class="mode-btn" id="modeBtnCouple" onclick="window.app.setMode('casal')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Casal</span>
+            </button>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">Menu</div>
+            <ul class="nav-list">
+              <li>
+                <button class="nav-item active" data-tab="visao-geral" onclick="window.app.setTab('visao-geral')">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>
+                  <span>Visão geral</span>
+                </button>
+              </li>
+              <li>
+                <button class="nav-item" data-tab="lancamentos" onclick="window.app.setTab('lancamentos')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                  <span>Lançamentos</span>
+                </button>
+              </li>
+              <li>
+                <button class="nav-item" data-tab="cartoes" onclick="window.app.setTab('cartoes')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  <span>Cartões</span>
+                </button>
+              </li>
+              <li>
+                <button class="nav-item" data-tab="nossa-reserva" onclick="window.app.setTab('nossa-reserva')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+                  <span id="navLabelReserva">Minha reserva</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">Ajustes</div>
+            <ul class="nav-list">
+              <li>
+                <button class="nav-item" data-tab="nossa-renda" onclick="window.app.setTab('nossa-renda')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>
+                  <span id="navLabelRenda">Minha renda</span>
+                </button>
+              </li>
+              <li>
+                <button class="nav-item" data-tab="contas-casa" onclick="window.app.setTab('contas-casa')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M9 21v-6h6v6"/></svg>
+                  <span id="navLabelContas">Contas fixas</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="theme-row">
+            <span class="theme-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              Tema
+            </span>
+            <div class="theme-switch" onclick="window.app.toggleTheme()">
+              <button class="theme-switch-btn active" id="themeBtnLight" title="Modo Claro">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              </button>
+              <button class="theme-switch-btn" id="themeBtnDark" title="Modo Escuro">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="profile-switcher" onclick="window.app.handleProfileClick()" title="Clique para configurar ou alternar perfil">
+            <div class="profile-info">
+              <span class="avatar-circle blue" id="profileAvatar">J</span>
+              <div class="profile-meta">
+                <span class="profile-name" id="profileName">Perfil Individual</span>
+                <span class="profile-status">
+                  <span class="status-dot" id="profileDot"></span>
+                  <span id="profileStatusText">Separado do casal</span>
+                </span>
+              </div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted)"><polyline points="18 15 12 9 6 15"/></svg>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Right Area -->
+      <main class="main-area">
+        <!-- Top Header Bar -->
+        <div class="topbar">
+          <div class="month-navigator">
+            <div class="month-arrows">
+              <button class="icon-btn-sm" onclick="window.app.changeMonth(-1)" title="Mês anterior">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <button class="icon-btn-sm" onclick="window.app.changeMonth(1)" title="Próximo mês">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <button class="month-title-btn" onclick="window.app.changeMonth(0)">
+              <span class="month-name" id="currentMonthName">Dezembro</span>
+              <span class="month-year" id="currentYearNum">2026</span>
+              <span class="month-chevron">⌄</span>
+            </button>
+            <span class="mode-Top-badge" id="topbarModeBadge" onclick="window.app.toggleMode()">👤 Perfil Individual</span>
+          </div>
+
+          <div class="topbar-actions">
+            <button class="notif-btn" onclick="window.app.toggleNotifications(event)" title="Notificações">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+            </button>
+
+            <div class="split-add-btn">
+              <button class="split-add-main" onclick="window.app.openLancamentoModal()">
+                <span>+ Adicionar</span>
+              </button>
+              <button class="split-add-caret" onclick="window.app.toggleQuickMenu(event)" title="Mais opções">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+
+            <!-- Notifications Popover -->
+            <div class="popover-menu" id="notifPopover">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;border-bottom:1px solid var(--border-subtle);">
+                <strong style="font-size:12.5px;">Resumo do Mês</strong>
+              </div>
+              <div id="notifList" style="display:flex;flex-direction:column;gap:6px;padding-top:8px;font-size:12px;"></div>
+            </div>
+
+            <!-- Quick Add Dropdown -->
+            <div class="popover-menu" id="quickAddPopover" style="width:250px;">
+              <button class="nav-item" onclick="window.app.openLancamentoModal()">
+                <span>📝 Novo Lançamento (Entrada/Saída)</span>
+              </button>
+              <button class="nav-item" onclick="window.app.openAddModal('salario')">
+                <span>💵 Editar Salário e Despesas</span>
+              </button>
+              <button class="nav-item" onclick="window.app.openAddModal('conta')">
+                <span>📅 Nova Conta Fixa / Casa</span>
+              </button>
+              <button class="nav-item" onclick="window.app.openCardFormModal()">
+                <span>💳 Adicionar Novo Cartão</span>
+              </button>
+              <button class="nav-item" onclick="window.app.openUpcomingInvoicesModal()">
+                <span>📈 Editar Próximas Faturas</span>
+              </button>
+              <button class="nav-item" onclick="window.app.openObraModal()">
+                <span>🏗️ Editar Obra / Projeto</span>
+              </button>
+              <button class="nav-item" onclick="window.app.openProfileSettingsModal()">
+                <span>👤 Configurar Nome do Perfil</span>
+              </button>
+              <div style="border-top:1px solid var(--border-subtle);margin:4px 0;"></div>
+              <button class="nav-item" onclick="window.app.reloadSpreadsheetData()" style="color:var(--blue-primary);">
+                <span>📊 Recarregar Dados da Planilha</span>
+              </button>
+              <button class="nav-item" onclick="window.app.clearAllData()" style="color:var(--pink-primary);">
+                <span>🗑️ Zerar Dados deste Modo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic View Container -->
+        <div id="viewContainer"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Universal Modal -->
+  <div class="modal-backdrop" id="appModal" onclick="if(event.target===this) window.app.closeModal()">
+    <div class="modal-box" id="modalContent"></div>
+  </div>
+
+  <!-- Toast Feedback Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

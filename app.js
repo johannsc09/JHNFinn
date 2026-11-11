@@ -381,8 +381,17 @@ function formatBRL(value, includeCurrency = true) {
   return (includeCurrency ? 'R$ ' : '') + int + cents;
 }
 
+const DEFAULT_CLOUD_OBJECT_ID = 'ff808181a09d98f701a1c7f1c6c6022b';
+const DEFAULT_SYNC_TOPIC = 'jhnfinn_johannsc09_sync_v1';
+
 class JHNFinnApp {
   constructor() {
+    this.clientId = 'dev_' + Math.random().toString(36).slice(2, 9);
+    this.cloudObjectId = localStorage.getItem('jhnfinn_cloud_obj_id') || DEFAULT_CLOUD_OBJECT_ID;
+    this.syncTopic = localStorage.getItem('jhnfinn_sync_topic') || DEFAULT_SYNC_TOPIC;
+    this.syncTimer = null;
+    this.eventSource = null;
+    this.lastSyncedAt = null;
     this.state = this.loadState();
     this.init();
   }
@@ -421,15 +430,192 @@ class JHNFinnApp {
     return getCleanInitialState();
   }
 
-  saveState() {
+  saveState(skipCloud = false) {
     try {
+      if (!skipCloud) {
+        this.state.updatedAt = Date.now();
+        this.state.updatedBy = this.clientId;
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      if (!skipCloud) {
+        this.scheduleCloudPush();
+      }
     } catch (e) {}
+  }
+
+  updateSyncUI(status, customLabel = '') {
+    const dot = document.getElementById('cloudSyncDot');
+    const txt = document.getElementById('cloudSyncText');
+    if (!dot || !txt) return;
+    dot.className = 'sync-dot';
+    if (status === 'syncing') {
+      dot.classList.add('syncing');
+      txt.textContent = customLabel || '🔄 Sincronizando...';
+    } else if (status === 'offline') {
+      dot.classList.add('offline');
+      txt.textContent = customLabel || '⚠️ Local (Offline)';
+    } else {
+      txt.textContent = customLabel || '☁️ Sincronizado';
+    }
+  }
+
+  scheduleCloudPush() {
+    this.updateSyncUI('syncing');
+    if (this.syncTimer) clearTimeout(this.syncTimer);
+    this.syncTimer = setTimeout(() => {
+      this.pushToCloud();
+    }, 350);
+  }
+
+  async pushToCloud(showToastOnDone = false) {
+    try {
+      this.updateSyncUI('syncing');
+      const syncPayload = {
+        ...this.state,
+        updatedAt: this.state.updatedAt || Date.now(),
+        updatedBy: this.clientId
+      };
+
+      // 1. Grava estado completo no armazenamento em nuvem persistente
+      const putRes = await fetch(`https://api.restful-api.dev/objects/${this.cloudObjectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'jhnfinn_sync',
+          data: syncPayload
+        })
+      });
+
+      // Se o objeto não existir, cria um novo automaticamente
+      if (putRes.status === 404) {
+        const postRes = await fetch('https://api.restful-api.dev/objects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'jhnfinn_sync',
+            data: syncPayload
+          })
+        });
+        if (postRes.ok) {
+          const created = await postRes.json();
+          if (created && created.id) {
+            this.cloudObjectId = created.id;
+            localStorage.setItem('jhnfinn_cloud_obj_id', created.id);
+          }
+        }
+      }
+
+      // 2. Dispara notificação instantânea em tempo real (SSE) via ntfy.sh para atualizar outros aparelhos abertos na hora
+      await fetch('https://ntfy.sh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: this.syncTopic,
+          message: JSON.stringify({
+            type: 'jhnfinn_update',
+            updatedAt: syncPayload.updatedAt,
+            updatedBy: this.clientId,
+            cloudObjectId: this.cloudObjectId
+          })
+        })
+      }).catch(() => {});
+
+      this.lastSyncedAt = new Date();
+      this.updateSyncUI('synced');
+      if (showToastOnDone) {
+        this.showToast('☁️ Dados enviados para a nuvem (PC ↔ Celular)!');
+      }
+    } catch (err) {
+      this.updateSyncUI('offline');
+    }
+  }
+
+  async pullFromCloud(silent = true) {
+    try {
+      if (!silent) this.updateSyncUI('syncing', '🔄 Buscando...');
+      const res = await fetch(`https://api.restful-api.dev/objects/${this.cloudObjectId}?t=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      if (!res.ok) {
+        this.updateSyncUI('synced');
+        return;
+      }
+      const obj = await res.json();
+      const remoteState = obj?.data;
+
+      if (remoteState && remoteState.workspaces) {
+        const remoteTime = Number(remoteState.updatedAt) || 0;
+        const localTime = Number(this.state.updatedAt) || 0;
+
+        // Se a nuvem tem dados mais recentes (ou se for forçado manualmente)
+        if (!silent || remoteTime > localTime) {
+          const currentTab = this.state.activeTab;
+          const base = getCleanInitialState();
+          this.state = {
+            ...base,
+            ...remoteState,
+            activeTab: currentTab || remoteState.activeTab || 'visao-geral',
+            workspaces: {
+              solo: { ...createEmptyWorkspace(), ...(remoteState.workspaces?.solo || {}) },
+              casal: { ...createEmptyWorkspace(), ...(remoteState.workspaces?.casal || {}) }
+            }
+          };
+          this.saveState(true);
+          this.applyTheme();
+          this.renderAll();
+          if (!silent) {
+            this.showToast('☁️ Dados sincronizados com a nuvem!');
+          }
+        }
+      } else if (!localTime && this.state.workspaces) {
+        // Se o objeto na nuvem ainda estava sem workspaces (recém-criado), envia o estado inicial da planilha
+        await this.pushToCloud(false);
+      }
+      this.lastSyncedAt = new Date();
+      this.updateSyncUI('synced');
+    } catch (err) {
+      this.updateSyncUI('offline');
+    }
+  }
+
+  initCloudSync() {
+    // 1. Busca o estado mais recente ao abrir o site (PC ou Celular)
+    this.pullFromCloud(true);
+
+    // 2. Escuta eventos em tempo real via Server-Sent Events (SSE) para atualizar na mesma hora entre PC e Celular
+    try {
+      if (this.eventSource) this.eventSource.close();
+      this.eventSource = new EventSource(`https://ntfy.sh/${this.syncTopic}/sse`);
+      this.eventSource.onmessage = (event) => {
+        try {
+          const outer = JSON.parse(event.data);
+          if (outer && outer.event === 'message' && outer.message) {
+            const inner = JSON.parse(outer.message);
+            if (inner.type === 'jhnfinn_update' && inner.updatedBy !== this.clientId) {
+              if (inner.cloudObjectId && inner.cloudObjectId !== this.cloudObjectId) {
+                this.cloudObjectId = inner.cloudObjectId;
+                localStorage.setItem('jhnfinn_cloud_obj_id', inner.cloudObjectId);
+              }
+              this.pullFromCloud(true);
+            }
+          }
+        } catch (e) {}
+      };
+    } catch (e) {}
+
+    // 3. Sempre que o usuário voltar para a aba ou desbloquear o celular, verifica atualizações
+    window.addEventListener('focus', () => this.pullFromCloud(true));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.pullFromCloud(true);
+      }
+    });
   }
 
   init() {
     this.applyTheme();
     this.renderAll();
+    this.initCloudSync();
 
     document.addEventListener('click', (e) => {
       const notifPop = document.getElementById('notifPopover');
@@ -650,7 +836,7 @@ class JHNFinnApp {
       this.state.history.push(tabId);
       this.state.historyIndex = this.state.history.length - 1;
     }
-    document.querySelectorAll('.sidebar .nav-item').forEach(btn => {
+    document.querySelectorAll('.sidebar .nav-item, .mobile-bottom-nav .mob-nav-item').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
     this.saveState();
@@ -1614,7 +1800,7 @@ class JHNFinnApp {
             </span>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div class="kpi-grid-4">
             <div style="padding:14px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border-subtle);">
               <span style="font-size:11px;color:var(--text-secondary);font-weight:600;">1. Renda Mensal Total</span>
               <div style="font-size:19px;font-weight:800;color:var(--green-primary);margin-top:4px;">+ ${formatBRL(m.salary)}</div>
@@ -1656,7 +1842,7 @@ class JHNFinnApp {
           </div>
 
           <!-- Simulador Direto por Porcentagem -->
-          <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;align-items:center;padding:14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-subtle);margin-bottom:16px;">
+          <div class="reserva-sim-grid" style="padding:14px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-subtle);margin-bottom:16px;">
             <div>
               <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">
                 Porcentagem do Saldo Disponível para Guardar: <strong style="color:var(--blue-primary);">${savePct}%</strong>
@@ -1707,7 +1893,7 @@ class JHNFinnApp {
           <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;">
             DISTRIBUIÇÃO SUGERIDA DO SALDO DISPONÍVEL (${formatBRL(availableMonth)}):
           </div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+          <div class="kpi-grid-4">
             <div style="padding:12px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border-subtle);">
               <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:var(--green-primary);">
                 <span>🛡️ Reserva Emergência</span>
@@ -1747,7 +1933,7 @@ class JHNFinnApp {
         </div>
 
         <!-- BLOCO 3: Patrimônio & Meta da Reserva Acumulada -->
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+        <div class="kpi-grid-3" style="margin-bottom:24px;">
           <div style="padding:18px;border-radius:12px;background:var(--bg-card-subtle);border:1px solid var(--border-color);">
             <span style="font-size:12px;color:var(--text-secondary);">Saldo Acumulado na Reserva</span>
             <div style="font-size:26px;font-weight:800;color:var(--green-primary);margin-top:4px;">${formatBRL(r.totalSaved)}</div>
@@ -1881,7 +2067,7 @@ class JHNFinnApp {
         </div>
 
         <!-- Barra Rápida para Cadastrar Conta Fixa Diretamente -->
-        <div class="lancamentos-form-bar" style="grid-template-columns: 1.5fr 1fr 0.9fr 1fr 1fr auto; margin-bottom: 18px;">
+        <div class="contas-fixas-form-bar">
           <div class="form-group">
             <label>Nome da Conta Fixa</label>
             <input type="text" id="inlHbName" class="form-control" placeholder="Ex: Conta de Energia, Internet, Aluguel..." />
@@ -2594,7 +2780,7 @@ class JHNFinnApp {
         </div>
 
         <!-- KPIs em tempo real -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+        <div class="kpi-grid-4" style="margin-bottom:18px;">
           <div style="padding:14px;border-radius:12px;background:var(--green-soft);border:1px solid rgba(22,163,74,0.2);">
             <span style="font-size:11px;color:var(--green-primary);font-weight:600;">Renda Mensal Total</span>
             <div style="font-size:20px;font-weight:800;color:var(--green-primary);margin-top:4px;">+ ${formatBRL(m.salary)}</div>
@@ -2898,6 +3084,114 @@ class JHNFinnApp {
         ? `➕ Receita "${desc}" atualizada na Renda Mensal!`
         : `➖ Lançamento "${desc}" atualizado na Sobra!`
     );
+  }
+
+  openCloudSyncModal() {
+    document.getElementById('quickAddPopover')?.classList.remove('open');
+    const modal = document.getElementById('appModal');
+    const content = document.getElementById('modalContent');
+    const lastSyncStr = this.lastSyncedAt
+      ? this.lastSyncedAt.toLocaleTimeString('pt-BR')
+      : 'Sincronizado automaticamente';
+
+    content.innerHTML = `
+      <div class="modal-header">
+        <h3>☁️ Sincronização em Tempo Real (PC ↔ Celular)</h3>
+        <button class="icon-btn-sm" onclick="window.app.closeModal()">✕</button>
+      </div>
+
+      <div style="padding:14px;border-radius:12px;background:var(--green-soft);border:1px solid rgba(22,163,74,0.25);margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--green-primary);font-size:13px;">
+          <span class="sync-dot"></span>
+          <span>Sincronização Automática Ativa!</span>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.45;">
+          Qualquer alteração feita no <strong>PC</strong> ou no <strong>Celular</strong> é salva automaticamente na nuvem e atualiza o outro aparelho na mesma hora.<br>
+          <small style="color:var(--text-muted);">Última verificação: ${lastSyncStr}</small>
+        </p>
+      </div>
+
+      <div class="form-row-2" style="margin-bottom:14px;">
+        <button class="btn-primary" style="width:100%;" onclick="window.app.pullFromCloud(false)">
+          ⬇️ Buscar Dados da Nuvem Agora
+        </button>
+        <button class="btn-pill-outline" style="width:100%;justify-content:center;" onclick="window.app.pushToCloud(true)">
+          ⬆️ Enviar Deste Aparelho p/ Nuvem
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label>ID da Nuvem (Compartilhado entre seu PC e Celular)</label>
+        <input type="text" id="modCloudObjId" class="form-control" value="${this.cloudObjectId}" />
+        <small style="font-size:11px;color:var(--text-muted);display:block;margin-top:4px;">
+          Este código já vem configurado por padrão no seu link do GitHub Pages para conectar seu PC e seu Celular automaticamente.
+        </small>
+      </div>
+
+      <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:14px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:8px;">
+          Backup Manual em Arquivo (Opcional)
+        </label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-pill-outline" onclick="window.app.exportBackupJSON()">💾 Baixar Backup (.json)</button>
+          <label class="btn-pill-outline" style="cursor:pointer;margin:0;">
+            📂 Restaurar Backup (.json)
+            <input type="file" accept=".json" style="display:none;" onchange="window.app.importBackupJSON(event)" />
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-pill-outline" onclick="window.app.closeModal()">Fechar</button>
+        <button class="btn-primary" onclick="window.app.saveCloudSyncSettings()">Salvar Código</button>
+      </div>
+    `;
+    modal.classList.add('open');
+  }
+
+  saveCloudSyncSettings() {
+    const newId = document.getElementById('modCloudObjId')?.value.trim();
+    if (newId) {
+      this.cloudObjectId = newId;
+      localStorage.setItem('jhnfinn_cloud_obj_id', newId);
+      this.pullFromCloud(false);
+    }
+    this.closeModal();
+  }
+
+  exportBackupJSON() {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.state, null, 2));
+    const a = document.createElement('a');
+    a.setAttribute('href', dataStr);
+    a.setAttribute('download', `jhnfinn_backup_${this.state.year}_${this.state.monthIndex + 1}.json`);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    this.showToast('💾 Arquivo de backup baixado!');
+  }
+
+  importBackupJSON(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (parsed && parsed.workspaces) {
+          this.state = parsed;
+          this.saveState();
+          this.applyTheme();
+          this.renderAll();
+          this.closeModal();
+          this.showToast('✅ Backup restaurado e sincronizado com a nuvem!');
+        } else {
+          this.showToast('Arquivo de backup inválido.');
+        }
+      } catch (err) {
+        this.showToast('Erro ao ler arquivo JSON.');
+      }
+    };
+    reader.readAsText(file);
   }
 
   closeModal() {

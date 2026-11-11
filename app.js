@@ -245,110 +245,8 @@ function createEmptyWorkspace() {
   };
 }
 
-// Dados importados diretamente da Planilha Google Sheets (Mês 11/2026)
-function createSpreadsheetWorkspace() {
-  return {
-    selectedBillDay: 6,
-    moradiaScope: 'individual',
-    activeCardIndex: 0,
-    activeInvoiceIdx: 0,
-    pixSettled: true,
-
-    // Receita Total (11/2026): R$ 2.033,42
-    // Contas Fixas (7 contas): R$ 633,24 | Lançamentos Variáveis (10 lançamentos): R$ 935,95 (Pessoais: R$ 694,67 + Dia a dia: R$ 241,28)
-    // Total Despesas = R$ 1.569,19 -> Saldo Disponível no Mês (Sobra) = R$ 464,23
-    salaryYou: 2033.42,
-    salaryPartner: 0,
-    personalBillsYou: 694.67,
-    dailyExpensesYou: 241.28,
-
-    // Lançamentos variáveis e receitas do mês (separados das Contas Fixas para não duplicar)
-    lancamentos: [
-      { id: 'LAN-021', desc: 'Salário', category: 'Salário', kind: 'receita', amount: 2033.42, date: '2026-11-05', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-022', desc: 'Fatura PicPay', category: 'Fatura', kind: 'despesa', amount: 265.00, date: '2026-11-05', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-023', desc: 'Shopee', category: 'Fatura', kind: 'despesa', amount: 65.37, date: '2026-11-05', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-024', desc: 'Comida', category: 'Alimentação', kind: 'despesa', amount: 49.58, date: '2026-11-05', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-025', desc: 'Perfumes', category: 'Outros', kind: 'despesa', amount: 269.80, date: '2026-11-06', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-031', desc: 'Fatura Nubank', category: 'Fatura', kind: 'despesa', amount: 30.00, date: '2026-11-06', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-033', desc: 'Corte', category: 'Saúde', kind: 'despesa', amount: 27.50, date: '2026-11-06', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-034', desc: 'Bombom', category: 'Alimentação', kind: 'despesa', amount: 18.00, date: '2026-11-06', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-035', desc: 'Lazer', category: 'Lazer', kind: 'despesa', amount: 159.80, date: '2026-11-07', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-037', desc: 'Spr', category: 'Lazer', kind: 'despesa', amount: 13.90, date: '2026-11-07', paymentMethod: 'Pix', paid: true },
-      { id: 'LAN-038', desc: 'A/C', category: 'Saúde', kind: 'despesa', amount: 37.00, date: '2026-11-24', paymentMethod: 'Pix', paid: false }
-    ],
-
-    // Contas Fixas (Total: R$ 633,24) — vinculadas automaticamente com Contas a Pagar pelo dia!
-    houseBills: [
-      { id: 'hb_energia', name: 'Conta de Energia', amount: 135.72, day: 6, paid: true, payer: 'voce', inMoradia: true, icon: 'bolt', approx: false },
-      { id: 'hb_internet', name: 'Internet', amount: 40.00, day: 6, paid: true, payer: 'voce', inMoradia: true, icon: 'wifi', approx: false },
-      { id: 'hb_guardado', name: 'Dinheiro Guardado (Investimento)', amount: 300.00, day: 8, paid: true, payer: 'voce', inMoradia: false, icon: 'card', approx: false },
-      { id: 'hb_faculdade', name: 'Faculdade (Educação)', amount: 101.71, day: 6, paid: true, payer: 'voce', inMoradia: false, icon: 'building', approx: false },
-      { id: 'hb_apple', name: 'Apple (Assinatura)', amount: 25.00, day: 6, paid: true, payer: 'voce', inMoradia: false, icon: 'card', approx: false },
-      { id: 'hb_google', name: 'Assinatura Google', amount: 23.99, day: 6, paid: true, payer: 'voce', inMoradia: false, icon: 'wifi', approx: false },
-      { id: 'hb_spotify', name: 'Spotify', amount: 6.82, day: 6, paid: false, payer: 'voce', inMoradia: false, icon: 'wifi', approx: false }
-    ],
-
-    payableBills: [],
-
-    // Cartões e Faturas (Total Faturas 11/2026 = R$ 360,37: PicPay R$ 265,00 + Shopee R$ 65,37 + Nubank R$ 30,00)
-    cards: [
-      {
-        id: 'card_picpay',
-        bank: 'PicPay',
-        tier: 'FATURA + SHOPEE',
-        theme: 'verde',
-        status: 'Paga',
-        due: '05/11',
-        freeLimit: 1200.00,
-        invoiceAmount: 330.37,
-        items: [
-          { desc: 'Fatura PicPay (05/11)', date: '05/11', val: 265.00 },
-          { desc: 'Shopee (05/11)', date: '05/11', val: 65.37 }
-        ]
-      },
-      {
-        id: 'card_nubank',
-        bank: 'Nubank',
-        tier: 'ROXINHO',
-        theme: 'nubank',
-        status: 'Paga',
-        due: '06/11',
-        freeLimit: 1500.00,
-        invoiceAmount: 30.00,
-        items: [
-          { desc: 'Fatura Nubank (06/11)', date: '06/11', val: 30.00 }
-        ]
-      }
-    ],
-
-    // Histórico & Orçamento de Faturas da Planilha (Out: R$ 855,00 | Nov: R$ 360,37 | Meta Orçada: R$ 300,00)
-    upcomingInvoices: [
-      { label: 'Nov 26', status: 'Realizado', amount: 360.37 },
-      { label: 'Dez 26', status: 'Orçado', amount: 300.00 },
-      { label: 'Jan 27', status: 'Orçado', amount: 300.00 }
-    ],
-
-    // Metas de Alocação do Saldo Disponível (R$ 464,23 da planilha)
-    obra: {
-      title: 'Alocação do Saldo Disponível (Meta Planilha)',
-      amount: 464.23,
-      description: '40% Emergência (R$ 185,69) · 30% Investimentos (R$ 139,27) · 20% Curto Prazo (R$ 92,85) · 10% Livre (R$ 46,42)'
-    },
-
-    reserva: {
-      totalSaved: 300.00,
-      monthlyGoal: 324.96, // R$ 185,69 (Emergência 40%) + R$ 139,27 (Investimentos 30%)
-      targetEmergency: 5000.00,
-      savePctOfLeftover: 70,
-      pctEmergency: 40,
-      pctInvest: 30,
-      pctShortTerm: 20,
-      pctFree: 10
-    }
-  };
-}
-
 function getCleanInitialState() {
+  const now = new Date();
   return {
     theme: 'light',
     mode: 'solo',
@@ -358,14 +256,170 @@ function getCleanInitialState() {
     activeTab: 'visao-geral',
     history: ['visao-geral'],
     historyIndex: 0,
-    monthIndex: 10, // Novembro (11/2026 da planilha)
-    year: 2026,
+    monthIndex: now.getMonth(),
+    year: now.getFullYear(),
     workspaces: {
-      solo: createSpreadsheetWorkspace(),
+      solo: createEmptyWorkspace(),
       casal: createEmptyWorkspace()
     }
   };
 }
+
+function normalizeState(parsed) {
+  const base = getCleanInitialState();
+  const src = parsed && typeof parsed === 'object' ? parsed : {};
+  return {
+    ...base,
+    ...src,
+    workspaces: {
+      solo: { ...createEmptyWorkspace(), ...(src.workspaces?.solo || {}) },
+      casal: { ...createEmptyWorkspace(), ...(src.workspaces?.casal || {}) }
+    }
+  };
+}
+
+/* =========================================================
+   COFRE CRIPTOGRAFADO (Web Crypto API)
+   - Chave: PBKDF2-SHA256 (310.000 iterações) + salt aleatório de 128 bits
+   - Cifra: AES-256-GCM (confidencialidade + integridade), IV aleatório a cada gravação
+   - Canal de sincronização derivado da senha (nunca fica no código-fonte)
+   - Nada em texto puro é gravado no aparelho nem enviado para a nuvem
+   ========================================================= */
+const VAULT_STORAGE_KEY = 'jhnfinn_vault_v1';
+const VAULT_SESSION_KEY = 'jhnfinn_vault_session_v1';
+const VAULT_NOTICE_KEY = 'jhnfinn_vault_notice';
+const VAULT_MIN_PASSWORD = 8;
+
+const VaultCrypto = {
+  ITERATIONS: 310000,
+  TOPIC_ITERATIONS: 150000,
+  AAD: 'jhnfinn-vault-v1',
+  enc: new TextEncoder(),
+  dec: new TextDecoder(),
+
+  isSupported() {
+    return !!(window.crypto && window.crypto.subtle && window.crypto.getRandomValues);
+  },
+
+  toB64(buf) {
+    const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    let s = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(s);
+  },
+
+  fromB64(str) {
+    const bin = atob(str);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  },
+
+  randomBytes(n) {
+    return crypto.getRandomValues(new Uint8Array(n));
+  },
+
+  safeIterations(it) {
+    const n = Number(it) || this.ITERATIONS;
+    return Math.min(Math.max(n, 100000), 5000000);
+  },
+
+  importPassword(password) {
+    return crypto.subtle.importKey(
+      'raw',
+      this.enc.encode(String(password).normalize('NFKC')),
+      'PBKDF2',
+      false,
+      ['deriveKey', 'deriveBits']
+    );
+  },
+
+  deriveAesKey(baseKey, saltB64, iterations) {
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: this.fromB64(saltB64), iterations: this.safeIterations(iterations), hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      true,
+      ['encrypt', 'decrypt']
+    );
+  },
+
+  importRawAesKey(rawB64) {
+    return crypto.subtle.importKey('raw', this.fromB64(rawB64), { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+  },
+
+  async exportRawAesKey(key) {
+    return this.toB64(await crypto.subtle.exportKey('raw', key));
+  },
+
+  // Canal secreto: derivado da senha por PBKDF2 (mesma senha => mesmo canal em qualquer aparelho)
+  async deriveTopic(baseKey) {
+    const bits = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt: this.enc.encode('jhnfinn/sync-channel/v1'), iterations: this.TOPIC_ITERATIONS, hash: 'SHA-256' },
+      baseKey,
+      256
+    );
+    const hex = Array.from(new Uint8Array(bits).slice(0, 24))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    return 'jf_' + hex;
+  },
+
+  async gzip(bytes) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  },
+
+  async gunzip(bytes) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  },
+
+  isEnvelope(o) {
+    return !!(o && o.app === 'jhnfinn' && o.v === 1 && typeof o.ct === 'string' && typeof o.iv === 'string' && typeof o.salt === 'string');
+  },
+
+  async encryptJSON(obj, key, saltB64, iterations) {
+    let bytes = this.enc.encode(JSON.stringify(obj));
+    let z = 0;
+    if (typeof CompressionStream !== 'undefined') {
+      try {
+        bytes = await this.gzip(bytes);
+        z = 1;
+      } catch (e) {}
+    }
+    const iv = this.randomBytes(12);
+    const ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: this.enc.encode(this.AAD) },
+      key,
+      bytes
+    );
+    return {
+      app: 'jhnfinn',
+      v: 1,
+      kdf: 'PBKDF2-SHA256',
+      it: this.safeIterations(iterations),
+      salt: saltB64,
+      iv: this.toB64(iv),
+      z,
+      ct: this.toB64(ct)
+    };
+  },
+
+  // Lança erro se a senha/chave estiver errada ou se o conteúdo foi adulterado (tag GCM)
+  async decryptJSON(env, key) {
+    const plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: this.fromB64(env.iv), additionalData: this.enc.encode(this.AAD) },
+      key,
+      this.fromB64(env.ct)
+    );
+    let bytes = new Uint8Array(plain);
+    if (env.z === 1) bytes = await this.gunzip(bytes);
+    return JSON.parse(this.dec.decode(bytes));
+  }
+};
 
 function splitBRL(value) {
   const num = Number(value) || 0;
@@ -381,20 +435,26 @@ function formatBRL(value, includeCurrency = true) {
   return (includeCurrency ? 'R$ ' : '') + int + cents;
 }
 
-const DEFAULT_SYNC_TOPIC = 'jhnfinn_johannsc09_cloud_v3';
-
 class JHNFinnApp {
   constructor() {
     this.clientId = 'dev_' + Math.random().toString(36).slice(2, 9);
-    this.syncTopic = localStorage.getItem('jhnfinn_cloud_channel_v3') || DEFAULT_SYNC_TOPIC;
-    this.lastAppliedMsgId = localStorage.getItem('jhnfinn_last_msg_id_' + this.syncTopic) || '';
-    this.lastServerTime = Number(localStorage.getItem('jhnfinn_last_srv_time_' + this.syncTopic)) || 0;
+    this.vault = null; // { baseKey?, key, saltB64, iterations, topic }
+    this.vaultAuthMode = 'login';
+    this.vaultBusy = false;
+    this.keyCache = new Map();
+    this.undecryptableEvents = new Set();
+    this.persistQueue = Promise.resolve();
+    this.syncTopic = '';
+    this.lastAppliedMsgId = '';
+    this.lastServerTime = 0;
     this.hasPendingLocalChanges = false;
     this.syncTimer = null;
     this.pollInterval = null;
     this.eventSource = null;
     this.lastSyncedAt = null;
-    this.state = this.loadState();
+    this.cloudListenersBound = false;
+    // Enquanto o cofre estiver trancado, o app só conhece um estado vazio (nenhum dado real em memória)
+    this.state = getCleanInitialState();
     this.init();
   }
 
@@ -413,53 +473,530 @@ class JHNFinnApp {
     return this.state.mode === 'solo';
   }
 
-  loadState() {
+  /* ---------------------------------------------------------
+     Armazenamento local (somente envelopes criptografados)
+     --------------------------------------------------------- */
+  readLocalVault() {
+    try {
+      const raw = localStorage.getItem(VAULT_STORAGE_KEY);
+      if (!raw) return null;
+      const env = JSON.parse(raw);
+      return VaultCrypto.isEnvelope(env) ? env : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Dados antigos (versões anteriores sem criptografia) que ainda estejam neste navegador
+  readLegacyPlaintextState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const base = getCleanInitialState();
-        return {
-          ...base,
-          ...parsed,
-          workspaces: {
-            solo: { ...createEmptyWorkspace(), ...(parsed.workspaces?.solo || {}) },
-            casal: { ...createEmptyWorkspace(), ...(parsed.workspaces?.casal || {}) }
-          }
-        };
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.workspaces ? parsed : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Remove qualquer resquício em texto puro de versões anteriores (estado, canal, cursores)
+  purgeLegacyPlaintext() {
+    try {
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('jhnfinn_') && k !== VAULT_STORAGE_KEY) toRemove.push(k);
       }
+      toRemove.forEach((k) => localStorage.removeItem(k));
     } catch (e) {}
-    return getCleanInitialState();
+  }
+
+  async persistLocalVault() {
+    if (!this.vault) return null;
+    const env = await VaultCrypto.encryptJSON(this.state, this.vault.key, this.vault.saltB64, this.vault.iterations);
+    localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(env));
+    return env;
   }
 
   saveState(skipCloud = false) {
-    try {
-      if (!skipCloud) {
-        this.state.syncRev = (Number(this.state.syncRev) || 0) + 1;
-        this.state.updatedAt = Date.now();
-        this.state.updatedBy = this.clientId;
-        this.hasPendingLocalChanges = true;
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-      if (!skipCloud) {
-        this.scheduleCloudPush();
-      }
-    } catch (e) {}
+    // Cofre trancado: nunca grava nada
+    if (!this.vault) return;
+    if (!skipCloud) {
+      this.state.syncRev = (Number(this.state.syncRev) || 0) + 1;
+      this.state.updatedAt = Date.now();
+      this.state.updatedBy = this.clientId;
+      this.hasPendingLocalChanges = true;
+    }
+    this.persistQueue = this.persistQueue
+      .then(() => this.persistLocalVault())
+      .catch(() => {});
+    if (!skipCloud) {
+      this.scheduleCloudPush();
+    }
   }
 
+  // Obtém a chave AES correta para um envelope (mesmo salt = chave atual; outro salt = deriva da senha)
+  async getKeyForEnvelope(env) {
+    if (!this.vault) return null;
+    if (env.salt === this.vault.saltB64) return this.vault.key;
+    if (!this.vault.baseKey) return null;
+    const cacheId = env.salt + ':' + VaultCrypto.safeIterations(env.it);
+    if (!this.keyCache.has(cacheId)) {
+      this.keyCache.set(cacheId, VaultCrypto.deriveAesKey(this.vault.baseKey, env.salt, env.it));
+    }
+    return this.keyCache.get(cacheId);
+  }
+
+  async decryptWithVault(env) {
+    const key = await this.getKeyForEnvelope(env);
+    if (!key) return null;
+    try {
+      return await VaultCrypto.decryptJSON(env, key);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /* ---------------------------------------------------------
+     Tela de bloqueio / cadastro de senha
+     --------------------------------------------------------- */
+  initVaultGate() {
+    const notice = sessionStorage.getItem(VAULT_NOTICE_KEY);
+    if (notice) sessionStorage.removeItem(VAULT_NOTICE_KEY);
+
+    if (!VaultCrypto.isSupported()) {
+      this.showVaultError('Este navegador não oferece criptografia segura (Web Crypto). Atualize o navegador ou abra o site via HTTPS.');
+      const btn = document.getElementById('vaultSubmitBtn');
+      if (btn) btn.disabled = true;
+      return;
+    }
+
+    const hasVault = !!this.readLocalVault();
+    const hasLegacy = !!this.readLegacyPlaintextState();
+    this.setVaultAuthMode(hasVault ? 'login' : hasLegacy ? 'register' : 'login');
+    if (notice) this.showVaultError(notice);
+
+    this.tryRestoreSession().then((restored) => {
+      if (!restored) document.getElementById('vaultPasswordInput')?.focus();
+    });
+  }
+
+  async tryRestoreSession() {
+    try {
+      const raw = sessionStorage.getItem(VAULT_SESSION_KEY);
+      const env = this.readLocalVault();
+      if (!raw || !env) return false;
+      const sess = JSON.parse(raw);
+      if (!sess || sess.s !== env.salt || !sess.k || !sess.t) throw new Error('sessão inválida');
+      const key = await VaultCrypto.importRawAesKey(sess.k);
+      const state = await VaultCrypto.decryptJSON(env, key);
+      await this.unlockWith({ key, saltB64: env.salt, iterations: env.it, topic: sess.t }, state, true);
+      return true;
+    } catch (e) {
+      sessionStorage.removeItem(VAULT_SESSION_KEY);
+      return false;
+    }
+  }
+
+  setVaultAuthMode(mode) {
+    this.vaultAuthMode = mode === 'register' ? 'register' : 'login';
+    const isReg = this.vaultAuthMode === 'register';
+    document.getElementById('vaultTabLogin')?.classList.toggle('active', !isReg);
+    document.getElementById('vaultTabRegister')?.classList.toggle('active', isReg);
+    const confirmGroup = document.getElementById('vaultConfirmGroup');
+    if (confirmGroup) confirmGroup.style.display = isReg ? '' : 'none';
+    const confirmInput = document.getElementById('vaultPasswordConfirm');
+    if (confirmInput) confirmInput.required = isReg;
+    const passInput = document.getElementById('vaultPasswordInput');
+    if (passInput) {
+      passInput.setAttribute('autocomplete', isReg ? 'new-password' : 'current-password');
+      passInput.placeholder = isReg ? `Crie uma senha forte (mín. ${VAULT_MIN_PASSWORD} caracteres)...` : 'Digite sua senha secreta...';
+    }
+    const label = document.getElementById('vaultPassLabel');
+    if (label) label.textContent = isReg ? 'Nova Senha Mestra' : 'Sua Senha Mestra (PC & Celular)';
+    const btn = document.getElementById('vaultSubmitBtn');
+    if (btn) btn.textContent = isReg ? '🛡️ Cadastrar Senha e Criptografar' : '🔓 Desbloquear e Sincronizar Cofre';
+    const subtitle = document.getElementById('vaultModalSubtitle');
+    if (subtitle) {
+      if (isReg) {
+        subtitle.textContent = this.readLegacyPlaintextState()
+          ? 'Encontramos dados antigos neste aparelho. Eles serão criptografados com a nova senha e a cópia sem proteção será apagada.'
+          : 'Crie sua senha mestra. Ela criptografa seus dados neste aparelho e na sincronização com o celular. Não existe recuperação: guarde-a bem!';
+      } else {
+        subtitle.textContent = this.readLocalVault()
+          ? 'Digite sua senha para descriptografar os dados deste aparelho.'
+          : 'Já cadastrou a senha em outro aparelho? Digite-a para baixar seu cofre criptografado. Primeiro acesso? Use "Cadastrar Senha".';
+      }
+    }
+    this.showVaultError('');
+  }
+
+  showVaultError(msg) {
+    const box = document.getElementById('vaultErrorBox');
+    if (!box) return;
+    box.textContent = msg || '';
+    box.classList.toggle('visible', !!msg);
+  }
+
+  async submitVaultAuth() {
+    if (this.vaultBusy) return;
+    const passInput = document.getElementById('vaultPasswordInput');
+    const confirmInput = document.getElementById('vaultPasswordConfirm');
+    const remember = !!document.getElementById('vaultRememberDevice')?.checked;
+    const btn = document.getElementById('vaultSubmitBtn');
+    const password = passInput?.value || '';
+    if (!password) {
+      this.showVaultError('Digite a senha.');
+      return;
+    }
+
+    this.vaultBusy = true;
+    const originalLabel = btn ? btn.textContent : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Gerando chave segura...';
+    }
+    this.showVaultError('');
+
+    try {
+      if (this.vaultAuthMode === 'register') {
+        await this.registerVault(password, confirmInput?.value || '', remember);
+      } else {
+        await this.loginVault(password, remember);
+      }
+    } catch (err) {
+      this.showVaultError(err?.message || 'Não foi possível abrir o cofre.');
+    } finally {
+      this.vaultBusy = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+    }
+  }
+
+  // Busca as últimas mensagens do canal (mais nova primeiro) que tenham formato de envelope criptografado
+  async fetchRemoteEnvelopes(topic) {
+    const res = await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}/json?poll=1&since=72h`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const lines = (await res.text()).split('\n').map((l) => l.trim()).filter(Boolean);
+    const events = [];
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const ev = JSON.parse(lines[i]);
+        if (ev && ev.event === 'message') events.push(ev);
+      } catch (e) {}
+    }
+    return events;
+  }
+
+  async findLatestRemoteState(topic, baseKey, preferredKey, preferredSalt) {
+    let events = [];
+    try {
+      events = await this.fetchRemoteEnvelopes(topic);
+    } catch (e) {
+      return null;
+    }
+    const keys = new Map();
+    for (const ev of events.slice(0, 25)) {
+      const env = await this.extractEnvelopeFromNtfyEvent(ev);
+      if (!env) continue;
+      try {
+        let key = preferredKey && env.salt === preferredSalt ? preferredKey : keys.get(env.salt);
+        if (!key) {
+          // Limita derivações (cada uma é propositalmente lenta) para não travar com mensagens estranhas no canal
+          if (keys.size >= 3) continue;
+          key = await VaultCrypto.deriveAesKey(baseKey, env.salt, env.it);
+          keys.set(env.salt, key);
+        }
+        const state = await VaultCrypto.decryptJSON(env, key);
+        return { state, env, key, event: ev };
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  async loginVault(password, remember) {
+    const baseKey = await VaultCrypto.importPassword(password);
+    const topic = await VaultCrypto.deriveTopic(baseKey);
+    const localEnv = this.readLocalVault();
+
+    let state = null;
+    let env = null;
+    let key = null;
+    if (localEnv) {
+      try {
+        const k = await VaultCrypto.deriveAesKey(baseKey, localEnv.salt, localEnv.it);
+        state = await VaultCrypto.decryptJSON(localEnv, k);
+        env = localEnv;
+        key = k;
+      } catch (e) {
+        state = null;
+      }
+    }
+
+    const remote = await this.findLatestRemoteState(topic, baseKey, key, env?.salt);
+    if (remote) {
+      if (remote.state && remote.state.jhnfinnMoved) {
+        throw new Error('Esta senha foi alterada em outro aparelho. Entre com a senha nova.');
+      }
+      if (remote.state?.workspaces && (!state || (Number(remote.state.updatedAt) || 0) > (Number(state.updatedAt) || 0))) {
+        state = remote.state;
+        env = remote.env;
+        key = remote.key;
+      }
+    }
+
+    if (!state) {
+      if (localEnv) throw new Error('Senha incorreta. Tente novamente.');
+      throw new Error('Nenhum cofre encontrado para esta senha. Se é seu primeiro acesso, use a aba "Cadastrar Senha".');
+    }
+
+    await this.unlockWith({ baseKey, key, saltB64: env.salt, iterations: env.it, topic }, state, remember);
+  }
+
+  async registerVault(password, confirm, remember) {
+    if (password.length < VAULT_MIN_PASSWORD) {
+      throw new Error(`A senha precisa ter pelo menos ${VAULT_MIN_PASSWORD} caracteres.`);
+    }
+    if (password !== confirm) {
+      throw new Error('As senhas não conferem.');
+    }
+    if (this.readLocalVault()) {
+      throw new Error('Já existe um cofre protegido neste aparelho. Entre com a senha atual (depois use "Trocar Senha" no menu) ou apague o cofre deste aparelho.');
+    }
+
+    const baseKey = await VaultCrypto.importPassword(password);
+    const topic = await VaultCrypto.deriveTopic(baseKey);
+
+    // Se essa mesma senha já tem um cofre na nuvem (cadastrado no outro aparelho), apenas conecta nele
+    const remote = await this.findLatestRemoteState(topic, baseKey, null, null);
+    if (remote && remote.state?.workspaces) {
+      await this.unlockWith(
+        { baseKey, key: remote.key, saltB64: remote.env.salt, iterations: remote.env.it, topic },
+        remote.state,
+        remember
+      );
+      this.showToast('🔒 Cofre já existente encontrado na nuvem e conectado!');
+      return;
+    }
+
+    const saltB64 = VaultCrypto.toB64(VaultCrypto.randomBytes(16));
+    const key = await VaultCrypto.deriveAesKey(baseKey, saltB64, VaultCrypto.ITERATIONS);
+    const legacy = this.readLegacyPlaintextState();
+    const initial = legacy ? { ...legacy, updatedAt: Date.now(), updatedBy: this.clientId } : getCleanInitialState();
+
+    await this.unlockWith(
+      { baseKey, key, saltB64, iterations: VaultCrypto.ITERATIONS, topic },
+      initial,
+      remember,
+      true
+    );
+    this.showToast(legacy ? '🔒 Dados existentes criptografados com sua nova senha!' : '🛡️ Senha cadastrada! Cofre criptografado criado.');
+  }
+
+  async unlockWith(vault, state, remember, forcePush = false) {
+    this.vault = vault;
+    this.syncTopic = vault.topic;
+    this.lastAppliedMsgId = '';
+    this.lastServerTime = 0;
+
+    // Migração: se ainda existir uma cópia antiga sem criptografia e ela for mais recente, ela é aproveitada
+    let finalState = state;
+    let migrated = false;
+    const legacy = this.readLegacyPlaintextState();
+    if (legacy && (Number(legacy.updatedAt) || 0) > (Number(state.updatedAt) || 0)) {
+      finalState = legacy;
+      migrated = true;
+    }
+
+    const currentTab = finalState.activeTab;
+    this.state = normalizeState(finalState);
+    this.state.activeTab = currentTab || 'visao-geral';
+    this.purgeLegacyPlaintext();
+    await this.persistLocalVault();
+
+    if (remember) {
+      try {
+        sessionStorage.setItem(
+          VAULT_SESSION_KEY,
+          JSON.stringify({ k: await VaultCrypto.exportRawAesKey(vault.key), s: vault.saltB64, t: vault.topic })
+        );
+      } catch (e) {}
+    } else {
+      sessionStorage.removeItem(VAULT_SESSION_KEY);
+    }
+
+    const passInput = document.getElementById('vaultPasswordInput');
+    const confirmInput = document.getElementById('vaultPasswordConfirm');
+    if (passInput) passInput.value = '';
+    if (confirmInput) confirmInput.value = '';
+    document.getElementById('vaultLockOverlay')?.classList.add('hidden');
+    document.body.classList.remove('vault-locked');
+
+    this.applyTheme();
+    this.renderAll();
+    this.initCloudSync();
+    if (forcePush || migrated) {
+      this.state.updatedAt = Date.now();
+      this.state.updatedBy = this.clientId;
+      await this.persistLocalVault();
+      this.pushToCloud(false);
+    }
+  }
+
+  async lockVault() {
+    document.getElementById('quickAddPopover')?.classList.remove('open');
+    try {
+      await this.persistQueue;
+    } catch (e) {}
+    sessionStorage.removeItem(VAULT_SESSION_KEY);
+    // Recarrega a página para limpar da memória e da tela qualquer dado descriptografado
+    window.location.reload();
+  }
+
+  forgetLocalVault() {
+    const ok = window.confirm(
+      'Apagar o cofre deste aparelho?\n\nOs dados criptografados salvos SOMENTE neste navegador serão removidos. ' +
+        'Se você usa a mesma senha em outro aparelho, poderá baixar o cofre de novo pela nuvem.'
+    );
+    if (!ok) return;
+    try {
+      localStorage.removeItem(VAULT_STORAGE_KEY);
+      sessionStorage.removeItem(VAULT_SESSION_KEY);
+    } catch (e) {}
+    window.location.reload();
+  }
+
+  handlePasswordChangedElsewhere() {
+    try {
+      sessionStorage.removeItem(VAULT_SESSION_KEY);
+      sessionStorage.setItem(VAULT_NOTICE_KEY, 'A senha do cofre foi alterada em outro aparelho. Entre com a senha nova.');
+    } catch (e) {}
+    window.location.reload();
+  }
+
+  openChangePasswordModal() {
+    if (!this.vault) return;
+    document.getElementById('quickAddPopover')?.classList.remove('open');
+    const modal = document.getElementById('appModal');
+    const content = document.getElementById('modalContent');
+    content.innerHTML = `
+      <div class="modal-header">
+        <h3>🔑 Trocar Senha do Cofre</h3>
+        <button class="icon-btn-sm" onclick="window.app.closeModal()">✕</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-secondary);line-height:1.45;margin-bottom:12px;">
+        Os dados serão criptografados novamente com a nova senha. Os outros aparelhos serão bloqueados e pedirão a senha nova.
+      </p>
+      <div class="vault-error-msg" id="changePassError"></div>
+      <form onsubmit="event.preventDefault(); window.app.submitChangePassword();">
+        <div class="form-group">
+          <label>Senha Atual</label>
+          <input type="password" id="chgPassCurrent" class="form-control" autocomplete="current-password" required />
+        </div>
+        <div class="form-group">
+          <label>Nova Senha (mín. ${VAULT_MIN_PASSWORD} caracteres)</label>
+          <input type="password" id="chgPassNew" class="form-control" autocomplete="new-password" required />
+        </div>
+        <div class="form-group">
+          <label>Confirmar Nova Senha</label>
+          <input type="password" id="chgPassConfirm" class="form-control" autocomplete="new-password" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-pill-outline" onclick="window.app.closeModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="chgPassBtn">Trocar Senha</button>
+        </div>
+      </form>
+    `;
+    modal.classList.add('open');
+    document.getElementById('chgPassCurrent')?.focus();
+  }
+
+  async submitChangePassword() {
+    if (!this.vault || this.vaultBusy) return;
+    const errBox = document.getElementById('changePassError');
+    const showErr = (msg) => {
+      if (!errBox) return;
+      errBox.textContent = msg || '';
+      errBox.classList.toggle('visible', !!msg);
+    };
+    const current = document.getElementById('chgPassCurrent')?.value || '';
+    const next = document.getElementById('chgPassNew')?.value || '';
+    const confirm = document.getElementById('chgPassConfirm')?.value || '';
+    if (next.length < VAULT_MIN_PASSWORD) return showErr(`A nova senha precisa ter pelo menos ${VAULT_MIN_PASSWORD} caracteres.`);
+    if (next !== confirm) return showErr('As novas senhas não conferem.');
+    if (next === current) return showErr('A nova senha deve ser diferente da atual.');
+
+    const btn = document.getElementById('chgPassBtn');
+    this.vaultBusy = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Recriptografando...';
+    }
+    showErr('');
+    try {
+      const curBase = await VaultCrypto.importPassword(current);
+      const curTopic = await VaultCrypto.deriveTopic(curBase);
+      if (curTopic !== this.vault.topic) throw new Error('Senha atual incorreta.');
+
+      const newBase = await VaultCrypto.importPassword(next);
+      const newTopic = await VaultCrypto.deriveTopic(newBase);
+      const saltB64 = VaultCrypto.toB64(VaultCrypto.randomBytes(16));
+      const newKey = await VaultCrypto.deriveAesKey(newBase, saltB64, VaultCrypto.ITERATIONS);
+
+      // Avisa os outros aparelhos (no canal antigo, criptografado com a chave antiga) que a senha mudou
+      const oldVault = this.vault;
+      try {
+        const movedEnv = await VaultCrypto.encryptJSON(
+          { jhnfinnMoved: true, at: Date.now(), by: this.clientId },
+          oldVault.key,
+          oldVault.saltB64,
+          oldVault.iterations
+        );
+        await fetch(`https://ntfy.sh/${encodeURIComponent(oldVault.topic)}`, { method: 'PUT', body: JSON.stringify(movedEnv) });
+      } catch (e) {}
+
+      this.vault = { baseKey: newBase, key: newKey, saltB64, iterations: VaultCrypto.ITERATIONS, topic: newTopic };
+      this.keyCache.clear();
+      this.undecryptableEvents.clear();
+      this.syncTopic = newTopic;
+      this.lastAppliedMsgId = '';
+      this.lastServerTime = 0;
+      this.state.syncRev = (Number(this.state.syncRev) || 0) + 1;
+      this.state.updatedAt = Date.now();
+      this.state.updatedBy = this.clientId;
+      await this.persistQueue.catch(() => {});
+      await this.persistLocalVault();
+
+      if (sessionStorage.getItem(VAULT_SESSION_KEY)) {
+        sessionStorage.setItem(
+          VAULT_SESSION_KEY,
+          JSON.stringify({ k: await VaultCrypto.exportRawAesKey(newKey), s: saltB64, t: newTopic })
+        );
+      }
+
+      this.connectCloudStream();
+      await this.pushToCloud(false);
+      this.closeModal();
+      this.showToast('🔑 Senha alterada! Use a nova senha no PC e no Celular.');
+    } catch (err) {
+      showErr(err?.message || 'Não foi possível trocar a senha.');
+    } finally {
+      this.vaultBusy = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Trocar Senha';
+      }
+    }
+  }
+
+  /* ---------------------------------------------------------
+     Sincronização PC ↔ Celular (somente ciphertext trafega)
+     --------------------------------------------------------- */
   recordSyncCursor(msgId, srvTime) {
-    if (msgId) {
-      this.lastAppliedMsgId = msgId;
-      try {
-        localStorage.setItem('jhnfinn_last_msg_id_' + this.syncTopic, msgId);
-      } catch (e) {}
-    }
-    if (srvTime) {
-      this.lastServerTime = Number(srvTime) || 0;
-      try {
-        localStorage.setItem('jhnfinn_last_srv_time_' + this.syncTopic, String(this.lastServerTime));
-      } catch (e) {}
-    }
+    if (msgId) this.lastAppliedMsgId = msgId;
+    if (srvTime) this.lastServerTime = Number(srvTime) || 0;
   }
 
   updateSyncUI(status, customLabel = '') {
@@ -474,7 +1011,7 @@ class JHNFinnApp {
       dot.classList.add('offline');
       txt.textContent = customLabel || '⚠️ Local (Offline)';
     } else {
-      txt.textContent = customLabel || '☁️ Sincronizado';
+      txt.textContent = customLabel || '🔒 Criptografado';
     }
   }
 
@@ -487,18 +1024,20 @@ class JHNFinnApp {
   }
 
   async pushToCloud(showToastOnDone = false) {
+    if (!this.vault || !this.syncTopic) return;
     try {
       this.updateSyncUI('syncing');
       const syncPayload = {
         ...this.state,
         syncRev: Number(this.state.syncRev) || 1,
-        updatedAt: Date.now(),
+        updatedAt: Number(this.state.updatedAt) || Date.now(),
         updatedBy: this.clientId
       };
+      const env = await VaultCrypto.encryptJSON(syncPayload, this.vault.key, this.vault.saltB64, this.vault.iterations);
 
       const res = await fetch(`https://ntfy.sh/${encodeURIComponent(this.syncTopic)}`, {
         method: 'PUT',
-        body: JSON.stringify(syncPayload)
+        body: JSON.stringify(env)
       });
 
       if (!res.ok) {
@@ -513,7 +1052,7 @@ class JHNFinnApp {
       this.lastSyncedAt = new Date();
       this.updateSyncUI('synced');
       if (showToastOnDone) {
-        this.showToast('☁️ Dados enviados para a nuvem (PC ↔ Celular)!');
+        this.showToast('🔒 Dados criptografados enviados para a nuvem!');
       }
     } catch (err) {
       this.updateSyncUI('offline');
@@ -523,48 +1062,58 @@ class JHNFinnApp {
     }
   }
 
-  async extractStateFromNtfyEvent(outer) {
+  async extractEnvelopeFromNtfyEvent(outer) {
     try {
       if (!outer || outer.event !== 'message') return null;
+      let parsed = null;
       if (outer.attachment && outer.attachment.url) {
         const attRes = await fetch(outer.attachment.url, { cache: 'no-store' });
         if (!attRes.ok) return null;
-        const parsedAtt = await attRes.json();
-        return parsedAtt && parsedAtt.workspaces ? parsedAtt : null;
+        parsed = await attRes.json();
+      } else if (outer.message) {
+        parsed = JSON.parse(outer.message);
       }
-      if (outer.message) {
-        const parsedMsg = JSON.parse(outer.message);
-        return parsedMsg && parsedMsg.workspaces ? parsedMsg : null;
-      }
+      // Mensagens em texto puro (versões antigas) ou de terceiros são ignoradas
+      return VaultCrypto.isEnvelope(parsed) ? parsed : null;
     } catch (e) {}
     return null;
   }
 
-  async applyRemoteEvent(outer, silent = true) {
-    if (!outer || outer.event !== 'message' || !outer.id) return false;
-    if (silent && outer.id === this.lastAppliedMsgId) return false;
-    if (silent && this.hasPendingLocalChanges) return false;
+  // Retorna o estado descriptografado de um evento, ou null se não pertencer a este cofre
+  async decodeRemoteEvent(outer) {
+    if (!outer || !outer.id || this.undecryptableEvents.has(outer.id)) return null;
+    const env = await this.extractEnvelopeFromNtfyEvent(outer);
+    const decoded = env ? await this.decryptWithVault(env) : null;
+    if (!decoded) {
+      this.undecryptableEvents.add(outer.id);
+      return null;
+    }
+    return decoded;
+  }
 
-    const remoteState = await this.extractStateFromNtfyEvent(outer);
-    if (!remoteState || !remoteState.workspaces) return false;
+  async applyDecodedRemote(outer, remoteState, silent = true) {
+    if (remoteState.jhnfinnMoved) {
+      if (remoteState.by !== this.clientId && (Number(remoteState.at) || 0) > (Number(this.state.updatedAt) || 0)) {
+        this.handlePasswordChangedElsewhere();
+      }
+      return false;
+    }
+    if (!remoteState.workspaces) return false;
 
     // Se a mensagem veio deste mesmo aparelho/aba, apenas registra o cursor
     if (silent && remoteState.updatedBy && remoteState.updatedBy === this.clientId) {
       this.recordSyncCursor(outer.id, outer.time);
       return false;
     }
+    // Ignora estados antigos/reenviados (proteção contra replay)
+    if ((Number(remoteState.updatedAt) || 0) <= (Number(this.state.updatedAt) || 0)) {
+      this.recordSyncCursor(outer.id, outer.time);
+      return false;
+    }
 
     const currentTab = this.state.activeTab;
-    const base = getCleanInitialState();
-    this.state = {
-      ...base,
-      ...remoteState,
-      activeTab: currentTab || remoteState.activeTab || 'visao-geral',
-      workspaces: {
-        solo: { ...createEmptyWorkspace(), ...(remoteState.workspaces?.solo || {}) },
-        casal: { ...createEmptyWorkspace(), ...(remoteState.workspaces?.casal || {}) }
-      }
-    };
+    this.state = normalizeState(remoteState);
+    this.state.activeTab = currentTab || remoteState.activeTab || 'visao-geral';
 
     this.recordSyncCursor(outer.id, outer.time);
     this.saveState(true);
@@ -573,49 +1122,48 @@ class JHNFinnApp {
     this.lastSyncedAt = new Date();
     this.updateSyncUI('synced');
     if (!silent) {
-      this.showToast('☁️ Dados sincronizados com a nuvem!');
+      this.showToast('🔒 Dados sincronizados com a nuvem!');
     }
     return true;
   }
 
+  async applyRemoteEvent(outer, silent = true) {
+    if (!this.vault || !outer || outer.event !== 'message' || !outer.id) return false;
+    if (silent && outer.id === this.lastAppliedMsgId) return false;
+    if (silent && this.hasPendingLocalChanges) return false;
+    const remoteState = await this.decodeRemoteEvent(outer);
+    if (!remoteState) return false;
+    return this.applyDecodedRemote(outer, remoteState, silent);
+  }
+
   async pullFromCloud(silent = true) {
+    if (!this.vault || !this.syncTopic) return;
     try {
       if (!silent) this.updateSyncUI('syncing', '🔄 Buscando...');
-      const res = await fetch(
-        `https://ntfy.sh/${encodeURIComponent(this.syncTopic)}/json?poll=1&since=72h`,
-        { cache: 'no-store' }
-      );
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      const events = await this.fetchRemoteEnvelopes(this.syncTopic);
 
-      const text = await res.text();
-      const lines = text
-        .split('\n')
-        .map((l) => l.trim())
-        .filter(Boolean);
-
-      let lastValidEvent = null;
-      for (let i = lines.length - 1; i >= 0; i--) {
-        try {
-          const ev = JSON.parse(lines[i]);
-          if (ev && ev.event === 'message' && (ev.message || ev.attachment?.url)) {
-            lastValidEvent = ev;
-            break;
-          }
-        } catch (e) {}
-      }
-
-      if (lastValidEvent) {
-        const applied = await this.applyRemoteEvent(lastValidEvent, silent);
-        if (!applied && !silent) {
-          this.showToast('☁️ Seus dados já estão sincronizados com a nuvem!');
+      let latest = null;
+      for (const ev of events.slice(0, 25)) {
+        if (silent && ev.id === this.lastAppliedMsgId) break;
+        const decoded = await this.decodeRemoteEvent(ev);
+        if (decoded) {
+          latest = { ev, decoded };
+          break;
         }
-      } else {
-        // Canal ainda sem estado salvo nas últimas 72h: envia o estado atual para inicializar a nuvem
+      }
+
+      if (latest) {
+        const applied = silent && this.hasPendingLocalChanges
+          ? false
+          : await this.applyDecodedRemote(latest.ev, latest.decoded, silent);
+        if (!applied && !silent) {
+          this.showToast('🔒 Seus dados já estão sincronizados com a nuvem!');
+        }
+      } else if (!events.length || !this.lastAppliedMsgId) {
+        // Canal ainda sem cofre salvo nas últimas horas: envia o estado criptografado atual
         await this.pushToCloud(false);
         if (!silent) {
-          this.showToast('☁️ Nuvem inicializada com os dados deste aparelho!');
+          this.showToast('🔒 Nuvem inicializada com os dados criptografados deste aparelho!');
         }
       }
 
@@ -635,6 +1183,7 @@ class JHNFinnApp {
         this.eventSource.close();
         this.eventSource = null;
       }
+      if (!this.vault || !this.syncTopic) return;
       this.eventSource = new EventSource(`https://ntfy.sh/${encodeURIComponent(this.syncTopic)}/sse`);
       this.eventSource.onopen = () => {
         this.updateSyncUI('synced');
@@ -651,10 +1200,12 @@ class JHNFinnApp {
   }
 
   initCloudSync() {
-    // 1. Busca o estado mais recente ao abrir o site (PC, LocalStorage file:// ou GitHub Pages no Celular)
+    if (!this.vault) return;
+
+    // 1. Busca o estado mais recente ao desbloquear (PC, arquivo local ou GitHub Pages no Celular)
     this.pullFromCloud(true);
 
-    // 2. Escuta eventos em tempo real via Server-Sent Events (SSE) para atualizar na mesma hora
+    // 2. Escuta eventos em tempo real via Server-Sent Events (SSE)
     this.connectCloudStream();
 
     // 3. Verificação periódica automática (a cada 6s) caso o navegador móvel pause conexões SSE
@@ -665,18 +1216,33 @@ class JHNFinnApp {
       }
     }, 6000);
 
-    // 4. Sincronização instantânea entre abas do mesmo navegador via evento 'storage'
-    window.addEventListener('storage', (e) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (parsed && parsed.workspaces) {
-            this.state = this.loadState();
-            this.applyTheme();
-            this.renderAll();
-          }
-        } catch (err) {}
+    if (this.cloudListenersBound) return;
+    this.cloudListenersBound = true;
+
+    // 4. Sincronização entre abas do mesmo navegador (o conteúdo continua criptografado no localStorage)
+    window.addEventListener('storage', async (e) => {
+      if (e.key !== VAULT_STORAGE_KEY || !this.vault) return;
+      if (!e.newValue) {
+        window.location.reload();
+        return;
       }
+      try {
+        const env = JSON.parse(e.newValue);
+        if (!VaultCrypto.isEnvelope(env)) return;
+        const remoteState = await this.decryptWithVault(env);
+        if (!remoteState || !remoteState.workspaces) {
+          // Cofre trocado por outra senha em outra aba
+          this.handlePasswordChangedElsewhere();
+          return;
+        }
+        if ((Number(remoteState.updatedAt) || 0) > (Number(this.state.updatedAt) || 0)) {
+          const currentTab = this.state.activeTab;
+          this.state = normalizeState(remoteState);
+          this.state.activeTab = currentTab || 'visao-geral';
+          this.applyTheme();
+          this.renderAll();
+        }
+      } catch (err) {}
     });
 
     // 5. Sempre que o usuário voltar para a aba ou desbloquear o celular, verifica atualizações
@@ -691,7 +1257,7 @@ class JHNFinnApp {
   init() {
     this.applyTheme();
     this.renderAll();
-    this.initCloudSync();
+    this.initVaultGate();
 
     document.addEventListener('click', (e) => {
       const notifPop = document.getElementById('notifPopover');
@@ -1008,17 +1574,6 @@ class JHNFinnApp {
     this.saveState();
     this.renderAll();
     document.getElementById('quickAddPopover')?.classList.remove('open');
-  }
-
-  reloadSpreadsheetData() {
-    this.state.mode = 'solo';
-    this.state.monthIndex = 10; // Novembro 2026
-    this.state.year = 2026;
-    this.state.workspaces.solo = createSpreadsheetWorkspace();
-    this.saveState();
-    this.renderAll();
-    document.getElementById('quickAddPopover')?.classList.remove('open');
-    this.showToast('Dados da planilha importados no Perfil Individual!');
   }
 
   exportData() {
@@ -3164,6 +3719,7 @@ class JHNFinnApp {
 
   openCloudSyncModal() {
     document.getElementById('quickAddPopover')?.classList.remove('open');
+    if (!this.vault) return;
     const modal = document.getElementById('appModal');
     const content = document.getElementById('modalContent');
     const lastSyncStr = this.lastSyncedAt
@@ -3172,17 +3728,18 @@ class JHNFinnApp {
 
     content.innerHTML = `
       <div class="modal-header">
-        <h3>☁️ Sincronização em Tempo Real (PC ↔ Celular)</h3>
+        <h3>🔒 Cofre Criptografado & Sincronização</h3>
         <button class="icon-btn-sm" onclick="window.app.closeModal()">✕</button>
       </div>
 
       <div style="padding:14px;border-radius:12px;background:var(--green-soft);border:1px solid rgba(22,163,74,0.25);margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--green-primary);font-size:13px;">
           <span class="sync-dot"></span>
-          <span>Sincronização Automática Ativa!</span>
+          <span>Criptografia AES-256-GCM ativa</span>
         </div>
         <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.45;">
-          Qualquer alteração feita no <strong>PC</strong> ou no <strong>Celular</strong> é salva automaticamente na nuvem e atualiza o outro aparelho na mesma hora.<br>
+          Seus dados são criptografados com a sua senha <strong>antes</strong> de serem salvos neste aparelho ou enviados para a nuvem.
+          O canal de sincronização é secreto e derivado da senha — use a <strong>mesma senha</strong> no PC e no Celular.<br>
           <small style="color:var(--text-muted);">Última verificação: ${lastSyncStr}</small>
         </p>
       </div>
@@ -3196,77 +3753,94 @@ class JHNFinnApp {
         </button>
       </div>
 
-      <div class="form-group">
-        <label>Canal da Nuvem (Compartilhado entre seu PC e Celular)</label>
-        <input type="text" id="modCloudObjId" class="form-control" value="${this.syncTopic}" />
-        <small style="font-size:11px;color:var(--text-muted);display:block;margin-top:4px;">
-          Este canal já vem configurado por padrão no seu arquivo local e no GitHub Pages para conectar seu PC e seu Celular automaticamente.
-        </small>
+      <div class="form-row-2" style="margin-bottom:14px;">
+        <button class="btn-pill-outline" style="width:100%;justify-content:center;" onclick="window.app.openChangePasswordModal()">
+          🔑 Trocar Senha
+        </button>
+        <button class="btn-pill-outline" style="width:100%;justify-content:center;" onclick="window.app.lockVault()">
+          🔒 Bloquear Agora
+        </button>
       </div>
 
       <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:14px;">
         <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:8px;">
-          Backup Manual em Arquivo (Opcional)
+          Backup Manual em Arquivo (criptografado com a sua senha)
         </label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-pill-outline" onclick="window.app.exportBackupJSON()">💾 Baixar Backup (.json)</button>
+          <button class="btn-pill-outline" onclick="window.app.exportBackupJSON()">💾 Baixar Backup Criptografado</button>
           <label class="btn-pill-outline" style="cursor:pointer;margin:0;">
             📂 Restaurar Backup (.json)
             <input type="file" accept=".json" style="display:none;" onchange="window.app.importBackupJSON(event)" />
           </label>
         </div>
+        <small style="font-size:11px;color:var(--text-muted);display:block;margin-top:6px;">
+          Backups antigos sem criptografia também podem ser restaurados: eles são criptografados ao importar. Depois apague o arquivo original.
+        </small>
       </div>
 
       <div class="modal-actions">
         <button class="btn-pill-outline" onclick="window.app.closeModal()">Fechar</button>
-        <button class="btn-primary" onclick="window.app.saveCloudSyncSettings()">Salvar Canal</button>
       </div>
     `;
     modal.classList.add('open');
   }
 
-  saveCloudSyncSettings() {
-    const newTopic = document.getElementById('modCloudObjId')?.value.trim();
-    if (newTopic) {
-      this.syncTopic = newTopic;
-      localStorage.setItem('jhnfinn_cloud_channel_v3', newTopic);
-      this.lastAppliedMsgId = localStorage.getItem('jhnfinn_last_msg_id_' + this.syncTopic) || '';
-      this.connectCloudStream();
-      this.pullFromCloud(false);
+  async exportBackupJSON() {
+    if (!this.vault) return;
+    try {
+      const env = await VaultCrypto.encryptJSON(this.state, this.vault.key, this.vault.saltB64, this.vault.iterations);
+      const blob = new Blob([JSON.stringify(env)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `jhnfinn_backup_criptografado_${this.state.year}_${this.state.monthIndex + 1}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.showToast('💾 Backup criptografado baixado!');
+    } catch (e) {
+      this.showToast('⚠️ Não foi possível gerar o backup.');
     }
-    this.closeModal();
-  }
-
-  exportBackupJSON() {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(this.state, null, 2));
-    const a = document.createElement('a');
-    a.setAttribute('href', dataStr);
-    a.setAttribute('download', `jhnfinn_backup_${this.state.year}_${this.state.monthIndex + 1}.json`);
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    this.showToast('💾 Arquivo de backup baixado!');
   }
 
   importBackupJSON(event) {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !this.vault) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const parsed = JSON.parse(e.target.result);
-        if (parsed && parsed.workspaces) {
-          this.state = parsed;
+        let restored = null;
+        let wasPlaintext = false;
+        if (VaultCrypto.isEnvelope(parsed)) {
+          restored = await this.decryptWithVault(parsed);
+          if (!restored) {
+            this.showToast('🔒 Este backup foi criptografado com outra senha.');
+            return;
+          }
+        } else if (parsed && parsed.workspaces) {
+          restored = parsed;
+          wasPlaintext = true;
+        }
+        if (restored && restored.workspaces) {
+          this.state = normalizeState(restored);
           this.saveState();
           this.applyTheme();
           this.renderAll();
           this.closeModal();
-          this.showToast('✅ Backup restaurado e sincronizado com a nuvem!');
+          this.showToast(
+            wasPlaintext
+              ? '✅ Backup restaurado e criptografado! Apague o arquivo original sem proteção.'
+              : '✅ Backup restaurado e sincronizado com a nuvem!'
+          );
         } else {
           this.showToast('Arquivo de backup inválido.');
         }
       } catch (err) {
         this.showToast('Erro ao ler arquivo JSON.');
+      } finally {
+        event.target.value = '';
       }
     };
     reader.readAsText(file);

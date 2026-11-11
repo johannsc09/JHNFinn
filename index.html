@@ -10,7 +10,73 @@
   <title>JHNFinn — Controle Financeiro</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="fullscreen-mode">
+<body class="fullscreen-mode vault-locked">
+  <!-- Security Vault Lock & Password Registration Overlay -->
+  <div class="vault-lock-overlay" id="vaultLockOverlay">
+    <div class="vault-card">
+      <div class="vault-badge">
+        <span>🔒 Criptografia Ponta a Ponta (256-bit)</span>
+      </div>
+      <h2 id="vaultModalTitle" style="font-size:20px;font-weight:800;margin-bottom:4px;">Cofre Protegido JHNFinn</h2>
+      <p id="vaultModalSubtitle" style="font-size:12.5px;color:var(--text-secondary);line-height:1.45;">
+        Seus dados financeiros são criptografados com a sua senha pessoal antes de serem salvos ou sincronizados entre PC e Celular.
+      </p>
+
+      <div class="vault-tabs">
+        <button type="button" class="vault-tab-btn active" id="vaultTabLogin" onclick="window.app.setVaultAuthMode('login')">
+          🔓 Entrar com Senha
+        </button>
+        <button type="button" class="vault-tab-btn" id="vaultTabRegister" onclick="window.app.setVaultAuthMode('register')">
+          🛡️ Cadastrar Senha
+        </button>
+      </div>
+
+      <div class="vault-error-msg" id="vaultErrorBox"></div>
+
+      <form onsubmit="event.preventDefault(); window.app.submitVaultAuth();">
+        <div class="form-group">
+          <label id="vaultPassLabel">Sua Senha Mestra (PC & Celular)</label>
+          <input
+            type="password"
+            id="vaultPasswordInput"
+            class="form-control"
+            placeholder="Digite sua senha secreta..."
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <div class="form-group" id="vaultConfirmGroup" style="display:none;">
+          <label>Confirmar Nova Senha</label>
+          <input
+            type="password"
+            id="vaultPasswordConfirm"
+            class="form-control"
+            placeholder="Repita a senha para confirmar..."
+            autocomplete="new-password"
+          />
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);margin:10px 0 16px;cursor:pointer;">
+          <input type="checkbox" id="vaultRememberDevice" checked />
+          <span>Manter desbloqueado enquanto esta aba estiver aberta</span>
+        </label>
+
+        <button type="submit" class="btn-primary" id="vaultSubmitBtn" style="width:100%;justify-content:center;padding:11px 16px;font-size:13.5px;">
+          🔓 Desbloquear e Sincronizar Cofre
+        </button>
+      </form>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);font-size:11px;color:var(--text-muted);line-height:1.45;">
+        💡 <strong>Zero exposição:</strong> Sua senha nunca é enviada para servidores nem salva no código-fonte. Use a <strong>mesma senha</strong> no PC e no Celular para sincronizar seus dados automaticamente.
+        <br />
+        <button type="button" onclick="window.app.forgetLocalVault()" style="margin-top:8px;background:none;border:none;padding:0;color:var(--pink-primary);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline;">
+          Esqueci a senha — apagar o cofre deste aparelho
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="browser-window" id="browserWindow">
     <!-- Main App Grid -->
     <div class="app-layout">
@@ -142,9 +208,13 @@
           </div>
 
           <div class="topbar-actions">
-            <button class="sync-status-btn" id="cloudSyncBadge" onclick="window.app.openCloudSyncModal()" title="Sincronização em Tempo Real (PC ↔ Celular)">
+            <button class="sync-status-btn" id="cloudSyncBadge" onclick="window.app.openCloudSyncModal()" title="Cofre Criptografado (PC ↔ Celular)">
               <span class="sync-dot" id="cloudSyncDot"></span>
-              <span id="cloudSyncText">☁️ Sincronizado</span>
+              <span id="cloudSyncText">🔒 Criptografado</span>
+            </button>
+
+            <button class="icon-btn-sm" onclick="window.app.lockVault()" title="Bloquear Cofre Agora" style="font-size:13px;">
+              🔒
             </button>
 
             <button class="notif-btn" onclick="window.app.toggleNotifications(event)" title="Notificações">
@@ -172,7 +242,13 @@
             <!-- Quick Add Dropdown -->
             <div class="popover-menu" id="quickAddPopover" style="width:260px;">
               <button class="nav-item" onclick="window.app.openCloudSyncModal()" style="color:var(--green-primary);font-weight:600;">
-                <span>☁️ Sincronização PC ↔ Celular</span>
+                <span>🔒 Cofre & Sincronização (AES-256)</span>
+              </button>
+              <button class="nav-item" onclick="window.app.openChangePasswordModal()" style="color:var(--blue-primary);font-weight:600;">
+                <span>🔑 Trocar Senha do Cofre</span>
+              </button>
+              <button class="nav-item" onclick="window.app.lockVault()" style="color:var(--blue-primary);font-weight:600;">
+                <span>🔒 Bloquear Agora</span>
               </button>
               <div style="border-top:1px solid var(--border-subtle);margin:4px 0;"></div>
               <button class="nav-item" onclick="window.app.openLancamentoModal()">
@@ -197,9 +273,6 @@
                 <span>👤 Configurar Nome do Perfil</span>
               </button>
               <div style="border-top:1px solid var(--border-subtle);margin:4px 0;"></div>
-              <button class="nav-item" onclick="window.app.reloadSpreadsheetData()" style="color:var(--blue-primary);">
-                <span>📊 Recarregar Dados da Planilha</span>
-              </button>
               <button class="nav-item" onclick="window.app.clearAllData()" style="color:var(--pink-primary);">
                 <span>🗑️ Zerar Dados deste Modo</span>
               </button>

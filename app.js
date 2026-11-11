@@ -381,15 +381,17 @@ function formatBRL(value, includeCurrency = true) {
   return (includeCurrency ? 'R$ ' : '') + int + cents;
 }
 
-const DEFAULT_CLOUD_OBJECT_ID = 'ff808181a09d98f701a1c7f1c6c6022b';
-const DEFAULT_SYNC_TOPIC = 'jhnfinn_johannsc09_sync_v1';
+const DEFAULT_SYNC_TOPIC = 'jhnfinn_johannsc09_cloud_v3';
 
 class JHNFinnApp {
   constructor() {
     this.clientId = 'dev_' + Math.random().toString(36).slice(2, 9);
-    this.cloudObjectId = localStorage.getItem('jhnfinn_cloud_obj_id') || DEFAULT_CLOUD_OBJECT_ID;
-    this.syncTopic = localStorage.getItem('jhnfinn_sync_topic') || DEFAULT_SYNC_TOPIC;
+    this.syncTopic = localStorage.getItem('jhnfinn_cloud_channel_v3') || DEFAULT_SYNC_TOPIC;
+    this.lastAppliedMsgId = localStorage.getItem('jhnfinn_last_msg_id_' + this.syncTopic) || '';
+    this.lastServerTime = Number(localStorage.getItem('jhnfinn_last_srv_time_' + this.syncTopic)) || 0;
+    this.hasPendingLocalChanges = false;
     this.syncTimer = null;
+    this.pollInterval = null;
     this.eventSource = null;
     this.lastSyncedAt = null;
     this.state = this.loadState();
@@ -433,14 +435,31 @@ class JHNFinnApp {
   saveState(skipCloud = false) {
     try {
       if (!skipCloud) {
+        this.state.syncRev = (Number(this.state.syncRev) || 0) + 1;
         this.state.updatedAt = Date.now();
         this.state.updatedBy = this.clientId;
+        this.hasPendingLocalChanges = true;
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
       if (!skipCloud) {
         this.scheduleCloudPush();
       }
     } catch (e) {}
+  }
+
+  recordSyncCursor(msgId, srvTime) {
+    if (msgId) {
+      this.lastAppliedMsgId = msgId;
+      try {
+        localStorage.setItem('jhnfinn_last_msg_id_' + this.syncTopic, msgId);
+      } catch (e) {}
+    }
+    if (srvTime) {
+      this.lastServerTime = Number(srvTime) || 0;
+      try {
+        localStorage.setItem('jhnfinn_last_srv_time_' + this.syncTopic, String(this.lastServerTime));
+      } catch (e) {}
+    }
   }
 
   updateSyncUI(status, customLabel = '') {
@@ -464,7 +483,7 @@ class JHNFinnApp {
     if (this.syncTimer) clearTimeout(this.syncTimer);
     this.syncTimer = setTimeout(() => {
       this.pushToCloud();
-    }, 350);
+    }, 300);
   }
 
   async pushToCloud(showToastOnDone = false) {
@@ -472,54 +491,25 @@ class JHNFinnApp {
       this.updateSyncUI('syncing');
       const syncPayload = {
         ...this.state,
-        updatedAt: this.state.updatedAt || Date.now(),
+        syncRev: Number(this.state.syncRev) || 1,
+        updatedAt: Date.now(),
         updatedBy: this.clientId
       };
 
-      // 1. Grava estado completo no armazenamento em nuvem persistente
-      const putRes = await fetch(`https://api.restful-api.dev/objects/${this.cloudObjectId}`, {
+      const res = await fetch(`https://ntfy.sh/${encodeURIComponent(this.syncTopic)}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'jhnfinn_sync',
-          data: syncPayload
-        })
+        body: JSON.stringify(syncPayload)
       });
 
-      // Se o objeto não existir, cria um novo automaticamente
-      if (putRes.status === 404) {
-        const postRes = await fetch('https://api.restful-api.dev/objects', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'jhnfinn_sync',
-            data: syncPayload
-          })
-        });
-        if (postRes.ok) {
-          const created = await postRes.json();
-          if (created && created.id) {
-            this.cloudObjectId = created.id;
-            localStorage.setItem('jhnfinn_cloud_obj_id', created.id);
-          }
-        }
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
       }
 
-      // 2. Dispara notificação instantânea em tempo real (SSE) via ntfy.sh para atualizar outros aparelhos abertos na hora
-      await fetch('https://ntfy.sh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: this.syncTopic,
-          message: JSON.stringify({
-            type: 'jhnfinn_update',
-            updatedAt: syncPayload.updatedAt,
-            updatedBy: this.clientId,
-            cloudObjectId: this.cloudObjectId
-          })
-        })
-      }).catch(() => {});
-
+      const posted = await res.json();
+      if (posted && posted.id) {
+        this.recordSyncCursor(posted.id, posted.time);
+      }
+      this.hasPendingLocalChanges = false;
       this.lastSyncedAt = new Date();
       this.updateSyncUI('synced');
       if (showToastOnDone) {
@@ -527,83 +517,169 @@ class JHNFinnApp {
       }
     } catch (err) {
       this.updateSyncUI('offline');
+      if (showToastOnDone) {
+        this.showToast('⚠️ Não foi possível conectar à nuvem no momento.');
+      }
     }
+  }
+
+  async extractStateFromNtfyEvent(outer) {
+    try {
+      if (!outer || outer.event !== 'message') return null;
+      if (outer.attachment && outer.attachment.url) {
+        const attRes = await fetch(outer.attachment.url, { cache: 'no-store' });
+        if (!attRes.ok) return null;
+        const parsedAtt = await attRes.json();
+        return parsedAtt && parsedAtt.workspaces ? parsedAtt : null;
+      }
+      if (outer.message) {
+        const parsedMsg = JSON.parse(outer.message);
+        return parsedMsg && parsedMsg.workspaces ? parsedMsg : null;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  async applyRemoteEvent(outer, silent = true) {
+    if (!outer || outer.event !== 'message' || !outer.id) return false;
+    if (silent && outer.id === this.lastAppliedMsgId) return false;
+    if (silent && this.hasPendingLocalChanges) return false;
+
+    const remoteState = await this.extractStateFromNtfyEvent(outer);
+    if (!remoteState || !remoteState.workspaces) return false;
+
+    // Se a mensagem veio deste mesmo aparelho/aba, apenas registra o cursor
+    if (silent && remoteState.updatedBy && remoteState.updatedBy === this.clientId) {
+      this.recordSyncCursor(outer.id, outer.time);
+      return false;
+    }
+
+    const currentTab = this.state.activeTab;
+    const base = getCleanInitialState();
+    this.state = {
+      ...base,
+      ...remoteState,
+      activeTab: currentTab || remoteState.activeTab || 'visao-geral',
+      workspaces: {
+        solo: { ...createEmptyWorkspace(), ...(remoteState.workspaces?.solo || {}) },
+        casal: { ...createEmptyWorkspace(), ...(remoteState.workspaces?.casal || {}) }
+      }
+    };
+
+    this.recordSyncCursor(outer.id, outer.time);
+    this.saveState(true);
+    this.applyTheme();
+    this.renderAll();
+    this.lastSyncedAt = new Date();
+    this.updateSyncUI('synced');
+    if (!silent) {
+      this.showToast('☁️ Dados sincronizados com a nuvem!');
+    }
+    return true;
   }
 
   async pullFromCloud(silent = true) {
     try {
       if (!silent) this.updateSyncUI('syncing', '🔄 Buscando...');
-      const res = await fetch(`https://api.restful-api.dev/objects/${this.cloudObjectId}?t=${Date.now()}`, {
-        cache: 'no-store'
-      });
+      const res = await fetch(
+        `https://ntfy.sh/${encodeURIComponent(this.syncTopic)}/json?poll=1&since=72h`,
+        { cache: 'no-store' }
+      );
       if (!res.ok) {
-        this.updateSyncUI('synced');
-        return;
+        throw new Error(`HTTP ${res.status}`);
       }
-      const obj = await res.json();
-      const remoteState = obj?.data;
 
-      if (remoteState && remoteState.workspaces) {
-        const remoteTime = Number(remoteState.updatedAt) || 0;
-        const localTime = Number(this.state.updatedAt) || 0;
+      const text = await res.text();
+      const lines = text
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
 
-        // Se a nuvem tem dados mais recentes (ou se for forçado manualmente)
-        if (!silent || remoteTime > localTime) {
-          const currentTab = this.state.activeTab;
-          const base = getCleanInitialState();
-          this.state = {
-            ...base,
-            ...remoteState,
-            activeTab: currentTab || remoteState.activeTab || 'visao-geral',
-            workspaces: {
-              solo: { ...createEmptyWorkspace(), ...(remoteState.workspaces?.solo || {}) },
-              casal: { ...createEmptyWorkspace(), ...(remoteState.workspaces?.casal || {}) }
-            }
-          };
-          this.saveState(true);
-          this.applyTheme();
-          this.renderAll();
-          if (!silent) {
-            this.showToast('☁️ Dados sincronizados com a nuvem!');
+      let lastValidEvent = null;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        try {
+          const ev = JSON.parse(lines[i]);
+          if (ev && ev.event === 'message' && (ev.message || ev.attachment?.url)) {
+            lastValidEvent = ev;
+            break;
           }
-        }
-      } else if (!localTime && this.state.workspaces) {
-        // Se o objeto na nuvem ainda estava sem workspaces (recém-criado), envia o estado inicial da planilha
-        await this.pushToCloud(false);
+        } catch (e) {}
       }
+
+      if (lastValidEvent) {
+        const applied = await this.applyRemoteEvent(lastValidEvent, silent);
+        if (!applied && !silent) {
+          this.showToast('☁️ Seus dados já estão sincronizados com a nuvem!');
+        }
+      } else {
+        // Canal ainda sem estado salvo nas últimas 72h: envia o estado atual para inicializar a nuvem
+        await this.pushToCloud(false);
+        if (!silent) {
+          this.showToast('☁️ Nuvem inicializada com os dados deste aparelho!');
+        }
+      }
+
       this.lastSyncedAt = new Date();
       this.updateSyncUI('synced');
     } catch (err) {
       this.updateSyncUI('offline');
+      if (!silent) {
+        this.showToast('⚠️ Falha ao buscar dados da nuvem.');
+      }
     }
   }
 
-  initCloudSync() {
-    // 1. Busca o estado mais recente ao abrir o site (PC ou Celular)
-    this.pullFromCloud(true);
-
-    // 2. Escuta eventos em tempo real via Server-Sent Events (SSE) para atualizar na mesma hora entre PC e Celular
+  connectCloudStream() {
     try {
-      if (this.eventSource) this.eventSource.close();
-      this.eventSource = new EventSource(`https://ntfy.sh/${this.syncTopic}/sse`);
+      if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+      }
+      this.eventSource = new EventSource(`https://ntfy.sh/${encodeURIComponent(this.syncTopic)}/sse`);
+      this.eventSource.onopen = () => {
+        this.updateSyncUI('synced');
+      };
       this.eventSource.onmessage = (event) => {
         try {
           const outer = JSON.parse(event.data);
-          if (outer && outer.event === 'message' && outer.message) {
-            const inner = JSON.parse(outer.message);
-            if (inner.type === 'jhnfinn_update' && inner.updatedBy !== this.clientId) {
-              if (inner.cloudObjectId && inner.cloudObjectId !== this.cloudObjectId) {
-                this.cloudObjectId = inner.cloudObjectId;
-                localStorage.setItem('jhnfinn_cloud_obj_id', inner.cloudObjectId);
-              }
-              this.pullFromCloud(true);
-            }
+          if (outer && outer.event === 'message') {
+            this.applyRemoteEvent(outer, true);
           }
         } catch (e) {}
       };
     } catch (e) {}
+  }
 
-    // 3. Sempre que o usuário voltar para a aba ou desbloquear o celular, verifica atualizações
+  initCloudSync() {
+    // 1. Busca o estado mais recente ao abrir o site (PC, LocalStorage file:// ou GitHub Pages no Celular)
+    this.pullFromCloud(true);
+
+    // 2. Escuta eventos em tempo real via Server-Sent Events (SSE) para atualizar na mesma hora
+    this.connectCloudStream();
+
+    // 3. Verificação periódica automática (a cada 6s) caso o navegador móvel pause conexões SSE
+    if (this.pollInterval) clearInterval(this.pollInterval);
+    this.pollInterval = setInterval(() => {
+      if (!this.hasPendingLocalChanges && document.visibilityState !== 'hidden') {
+        this.pullFromCloud(true);
+      }
+    }, 6000);
+
+    // 4. Sincronização instantânea entre abas do mesmo navegador via evento 'storage'
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && parsed.workspaces) {
+            this.state = this.loadState();
+            this.applyTheme();
+            this.renderAll();
+          }
+        } catch (err) {}
+      }
+    });
+
+    // 5. Sempre que o usuário voltar para a aba ou desbloquear o celular, verifica atualizações
     window.addEventListener('focus', () => this.pullFromCloud(true));
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
@@ -3121,10 +3197,10 @@ class JHNFinnApp {
       </div>
 
       <div class="form-group">
-        <label>ID da Nuvem (Compartilhado entre seu PC e Celular)</label>
-        <input type="text" id="modCloudObjId" class="form-control" value="${this.cloudObjectId}" />
+        <label>Canal da Nuvem (Compartilhado entre seu PC e Celular)</label>
+        <input type="text" id="modCloudObjId" class="form-control" value="${this.syncTopic}" />
         <small style="font-size:11px;color:var(--text-muted);display:block;margin-top:4px;">
-          Este código já vem configurado por padrão no seu link do GitHub Pages para conectar seu PC e seu Celular automaticamente.
+          Este canal já vem configurado por padrão no seu arquivo local e no GitHub Pages para conectar seu PC e seu Celular automaticamente.
         </small>
       </div>
 
@@ -3143,17 +3219,19 @@ class JHNFinnApp {
 
       <div class="modal-actions">
         <button class="btn-pill-outline" onclick="window.app.closeModal()">Fechar</button>
-        <button class="btn-primary" onclick="window.app.saveCloudSyncSettings()">Salvar Código</button>
+        <button class="btn-primary" onclick="window.app.saveCloudSyncSettings()">Salvar Canal</button>
       </div>
     `;
     modal.classList.add('open');
   }
 
   saveCloudSyncSettings() {
-    const newId = document.getElementById('modCloudObjId')?.value.trim();
-    if (newId) {
-      this.cloudObjectId = newId;
-      localStorage.setItem('jhnfinn_cloud_obj_id', newId);
+    const newTopic = document.getElementById('modCloudObjId')?.value.trim();
+    if (newTopic) {
+      this.syncTopic = newTopic;
+      localStorage.setItem('jhnfinn_cloud_channel_v3', newTopic);
+      this.lastAppliedMsgId = localStorage.getItem('jhnfinn_last_msg_id_' + this.syncTopic) || '';
+      this.connectCloudStream();
       this.pullFromCloud(false);
     }
     this.closeModal();
